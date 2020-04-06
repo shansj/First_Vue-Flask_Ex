@@ -1,0 +1,289 @@
+<template>
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-10">
+        <h1>Books</h1>
+        <hr><br><br>
+        <alert :message=message v-if="showMessage"></alert>
+        <button type="button" class="btn btn-success btn-sm" v-b-modal.book-modal>Add Book</button>
+        <br><br>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Title</th>
+              <th scope="col">Author</th>
+              <th scope="col">Read?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(book, index) in books" :key="index">
+              <td>{{ book.title }}</td>
+              <td>{{ book.author }}</td>
+              <td>
+                <span v-if="book.read">Yes</span>
+                <span v-else>No</span>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+
+                    <button
+                        type="button"
+                        class="btn btn-warning btn-sm"
+                        v-b-modal.book-update-modal
+                        @click="editBook(book)">
+                        Update
+                    </button>
+
+                  
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm"
+                        @click="onDeleteBook(book)">
+                        Delete
+                    </button>
+
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <b-modal ref="addBookModal"
+            id="book-modal"
+            title="Add a new book"
+            hide-footer>
+      <b-form @submit="onSubmit" @reset="onReset" class="w-100">
+      <b-form-group id="form-title-group"
+                    label="Title:"
+                    label-for="form-title-input">
+          <b-form-input id="form-title-input"
+                        type="text"
+                        v-model="addBookForm.title"
+                        required
+                        placeholder="Enter title">
+          </b-form-input>
+        </b-form-group>
+        <b-form-group id="form-author-group"
+                      label="Author:"
+                      label-for="form-author-input">
+            <b-form-input id="form-author-input"
+                          type="text"
+                          v-model="addBookForm.author"
+                          required
+                          placeholder="Enter author">
+            </b-form-input>
+          </b-form-group>
+        <b-form-group id="form-read-group">
+          <b-form-checkbox-group v-model="addBookForm.read" id="form-checks">
+            <b-form-checkbox value="true">Read?</b-form-checkbox>
+          </b-form-checkbox-group>
+        </b-form-group>
+        <b-button-group>
+          <b-button type="submit" variant="primary">Submit</b-button>
+          <b-button type="reset" variant="danger">Reset</b-button>
+        </b-button-group>
+      </b-form>
+    </b-modal>
+    
+    <b-modal ref="editBookModal"
+         id="book-update-modal"
+         title="Update"
+         hide-footer>
+  <b-form @submit="onSubmitUpdate" @reset="onResetUpdate" class="w-100">
+  <b-form-group id="form-title-edit-group"
+                label="Title:"
+                label-for="form-title-edit-input">
+      <b-form-input id="form-title-edit-input"
+                    type="text"
+                    v-model="editForm.title"
+                    required
+                    placeholder="Enter title">
+      </b-form-input>
+    </b-form-group>
+    <b-form-group id="form-author-edit-group"
+                  label="Author:"
+                  label-for="form-author-edit-input">
+        <b-form-input id="form-author-edit-input"
+                      type="text"
+                      v-model="editForm.author"
+                      required
+                      placeholder="Enter author">
+        </b-form-input>
+      </b-form-group>
+    <b-form-group id="form-read-edit-group">
+      <b-form-checkbox-group v-model="editForm.read" id="form-checks">
+        <b-form-checkbox value="true">Read?</b-form-checkbox>
+      </b-form-checkbox-group>
+    </b-form-group>
+    <b-button-group>
+      <b-button type="submit" variant="primary">Update</b-button>
+      <b-button type="reset" variant="danger">Cancel</b-button>
+    </b-button-group>
+  </b-form>
+  </b-modal>
+
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+import Alert from './Alert.vue';
+
+export default {
+  data() {
+    return {
+      books: [],
+      addBookForm: {
+        title: "",
+        author: "",
+        read: []
+      },
+      editForm: {
+        id: "",
+        title: "",
+        author: "",
+        read: []
+      },
+      message: "",
+      showMessage: false
+    };
+  },
+
+  components: {
+    alert: Alert,
+  },
+
+  methods: {
+    // 获取路径下的json 数据,把获取的json数据保存到books,方法为get
+    getBooks() {
+      const path = 'http://localhost:5000/';
+      axios.get(path)                           // 获取路径下的json 数据
+        .then((res) => {
+          this.books = res.data.books;          // 把获取的json数据保存到books
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.error(error);
+        });
+    },
+
+    // 将数据通过post 传递给后台，并且更新前端books的数据状态
+    addBook(payload) {
+      const path = 'http://localhost:5000/';
+      axios.post(path, payload)              // 将数据通过post 传递给后台
+        .then(() => {
+          this.getBooks();                   // 更新books的前端数据
+          this.message = 'Book added!';     // 显示book添加成功
+          this.showMessage = true;         //显示信息状态
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.log(error);
+          this.getBooks();
+        });
+    },
+
+    // 初始化Form 状态，addBookForm, editForm
+    initForm() {
+        this.addBookForm.title = '';
+        this.addBookForm.author = '';
+        this.addBookForm.read = [];
+        this.editForm.id = '';
+        this.editForm.title = '';
+        this.editForm.author = '';
+        this.editForm.read = [];
+    },
+
+    // 点击提交之后的状态，
+    onSubmit(evt) {
+      evt.preventDefault();                        // 
+      this.$refs.addBookModal.hide();              // 隐藏 addBookModal 
+      let read = false;                            // 设置 read 为false
+      if (this.addBookForm.read[0]) read = true;   
+      const payload = {                            // 参数传递
+        title: this.addBookForm.title,
+        author: this.addBookForm.author,
+        read, // property shorthand
+      };
+      this.addBook(payload);                       // 数据传递给后台
+      this.initForm();                             // 表格初始化
+    },
+
+    // 取消之后的状态
+    onReset(evt) {
+      evt.preventDefault();
+      this.$refs.addBookModal.hide();
+      this.initForm();
+    },
+
+    //
+    editBook(book) {
+        this.editForm = book;
+    },
+
+    onSubmitUpdate(evt) {
+        evt.preventDefault();
+        this.$refs.editBookModal.hide();
+        let read = false;
+        if (this.editForm.read[0]) read = true;
+        const payload = {
+              title: this.editForm.title,
+              author: this.editForm.author,
+              read,
+        };
+        this.updateBook(payload, this.editForm.id);
+    },
+
+    // 更新book的状态
+    updateBook(payload, bookID) {
+        const path = `http://localhost:5000/${bookID}`;
+        axios.put(path, payload)
+        .then(() => {
+            this.getBooks();
+            this.message = 'Book updated!';
+            this.showMessage = true;
+            })
+            .catch((error) => {
+            // eslint-disable-next-line
+            console.error(error);
+            this.getBooks();
+            });
+     },
+    onResetUpdate(evt) {
+        evt.preventDefault();
+        this.$refs.editBookModal.hide();
+        this.initForm();
+        this.getBooks(); // why?
+        },    
+
+   //  删除book条目
+    removeBook(bookID) {
+        const path = `http://localhost:5000/${bookID}`;
+        axios.delete(path)
+             .then(() => {
+             this.getBooks();
+             this.message = 'Book removed!';
+             this.showMessage = true;
+            })
+            .catch((error) => {
+            // eslint-disable-next-line
+             console.error(error);
+             this.getBooks();
+         });
+        },
+    
+    onDeleteBook(book) {
+        this.removeBook(book.id);
+        },
+
+     },
+
+    // 表示页面被创建之后要运行的动作
+    created() {
+        this.getBooks();
+    },
+};
+</script>
